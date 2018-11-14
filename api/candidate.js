@@ -7,7 +7,7 @@ AWS.config.setPromisesDependency(require("bluebird"));
 
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
-exports.submit = async (event, context) => {
+exports.submit = async (event) => {
   try {
     const { fullname, email, experience } = JSON.parse(event.body);
 
@@ -67,7 +67,7 @@ const candidateInfo = (fullname, email, experience) => {
   };
 };
 
-exports.list = async (event, context) => {
+exports.list = async (event) => {
   try {
     const params = {
       TableName: process.env.CANDIDATE_TABLE,
@@ -90,5 +90,26 @@ exports.list = async (event, context) => {
       JSON.stringify(err, null, 2)
     );
     return err;
+  }
+};
+
+exports.get = async (event) => {
+  try {
+    const params = {
+      TableName: process.env.CANDIDATE_TABLE,
+      Key: {
+        id: event.pathParameters.id,
+      },
+    };
+
+    const result = await dynamoDb.get(params).promise();
+    const response = {
+      statusCode: 200,
+      body: JSON.stringify(result.Item),
+    };
+    return response;
+  } catch(err) {
+    console.error(err);
+    return new Error('Couldn\'t fetch candidate.');
   }
 };
