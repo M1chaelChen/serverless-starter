@@ -1,11 +1,7 @@
 "use strict";
 
 const uuid = require("uuid");
-const AWS = require("aws-sdk");
-
-AWS.config.setPromisesDependency(require("bluebird"));
-
-const dynamoDb = new AWS.DynamoDB.DocumentClient();
+const dynamoDb = require('../dynamoDb');
 
 exports.submit = async (event) => {
   try {
@@ -43,16 +39,16 @@ exports.submit = async (event) => {
   }
 };
 
-const submitCandidateP = candidate => {
+const submitCandidateP = async candidate => {
   console.log("Submitting candidate");
   const candidateInfo = {
     TableName: process.env.CANDIDATE_TABLE,
     Item: candidate
   };
+
   return dynamoDb
-    .put(candidateInfo)
-    .promise()
-    .then(res => candidate);
+  .put(candidateInfo)
+  .promise();
 };
 
 const candidateInfo = (fullname, email, experience) => {
@@ -67,49 +63,4 @@ const candidateInfo = (fullname, email, experience) => {
   };
 };
 
-exports.list = async (event) => {
-  try {
-    const params = {
-      TableName: process.env.CANDIDATE_TABLE,
-      ProjectionExpression: "id, fullname, email"
-    };
-  
-    console.log("Scanning Candidate table.");
-    const data = await dynamoDb.scan(params).promise();
 
-    console.log("Scan succeeded.");
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        candidates: data.Items
-      })
-    };
-  } catch(err) {
-    console.log(
-      "Scan failed to load data. Error JSON:",
-      JSON.stringify(err, null, 2)
-    );
-    return err;
-  }
-};
-
-exports.get = async (event) => {
-  try {
-    const params = {
-      TableName: process.env.CANDIDATE_TABLE,
-      Key: {
-        id: event.pathParameters.id,
-      },
-    };
-
-    const result = await dynamoDb.get(params).promise();
-    const response = {
-      statusCode: 200,
-      body: JSON.stringify(result.Item),
-    };
-    return response;
-  } catch(err) {
-    console.error(err);
-    return new Error('Couldn\'t fetch candidate.');
-  }
-};
